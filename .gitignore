@@ -1,0 +1,4 @@
+build/
+Arrange.xcodeproj/
+.DS_Store
+*.swp

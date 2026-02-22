@@ -1,0 +1,46 @@
+name: Arrange
+options:
+  bundleIdPrefix: com.ritualindustries
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: none
+
+packages:
+  HotKey:
+    url: https://github.com/soffes/HotKey
+    from: "0.2.1"
+
+targets:
+  Arrange:
+    type: application
+    platform: macOS
+    sources:
+      - path: Arrange/Sources
+      - path: Arrange/Resources
+        excludes:
+          - "Arrange.entitlements"
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ritualindustries.arrange
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_ENTITLEMENTS: Arrange/Resources/Arrange.entitlements
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        ONLY_ACTIVE_ARCH: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Arrange/Info.plist
+      properties:
+        LSUIElement: true
+        ATSApplicationFontsPath: Fonts
+        CFBundleIconFile: AppIcon
+        NSAccessibilityUsageDescription: "Arrange needs accessibility access to detect and reposition your windows."
+        NSHumanReadableCopyright: "© 2026 Ritual Industries"
+    dependencies:
+      - package: HotKey
