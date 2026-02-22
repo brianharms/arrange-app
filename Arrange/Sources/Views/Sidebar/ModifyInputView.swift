@@ -9,7 +9,7 @@ struct ModifyInputView: View {
         VStack(alignment: .leading, spacing: 0) {
             SectionLabel("MODIFY")
 
-            TextField("", text: $store.modifyText, prompt: Text("e.g. make VS Code larger").foregroundStyle(Theme.placeholder))
+            TextField("", text: $store.modifyText, prompt: Text("e.g. make VS Code larger").foregroundColor(Theme.placeholder))
                 .textFieldStyle(.plain)
                 .font(Theme.mainFont(isSm ? 11 : 13))
                 .foregroundStyle(Theme.text1)

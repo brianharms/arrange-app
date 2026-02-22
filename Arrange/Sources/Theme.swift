@@ -119,7 +119,7 @@ class ThemeConfig {
     var colorChoice: ThemeColor {
         didSet { UserDefaults.standard.set(colorChoice.rawValue, forKey: "themeColor") }
     }
-    var panelSize: Theme.PanelSize = .lg
+    var panelSize: Theme.PanelSize = .sm
 
     private init() {
         let defaults = UserDefaults.standard

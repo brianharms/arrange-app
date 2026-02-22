@@ -39,8 +39,9 @@ struct MonitorBar: View {
                         Text(size.rawValue.uppercased())
                             .font(Theme.monoFont(9, weight: .semibold))
                             .foregroundStyle(store.panelSize == size ? Theme.text1 : Theme.text4)
-                            .padding(.vertical, 5)
-                            .padding(.horizontal, 8)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .contentShape(Rectangle())
                             .background(
                                 store.panelSize == size ? Theme.bgActive : Color.clear,
                                 in: RoundedRectangle(cornerRadius: 4)
