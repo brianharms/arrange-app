@@ -13,7 +13,7 @@ Launch the Arrange app, install it to /Applications, and publish it to GitHub wi
 - Built the app incrementally with xcodebuild (no clean build)
 - Code-signed with ad-hoc signature using Arrange.entitlements
 - Installed `Arrange.app` to `/Applications`
-- Copied screenshot from `~/Desktop/Screengrabs/Screenshot 2026-02-23 at 11.53.11 AM.png` → `screenshot.png` in project root
+- Copied screenshot from local Screengrabs folder → `screenshot.png` in project root
 - Zipped the built app with `ditto` → `Arrange.zip` (2.5MB)
 - Wrote `README.md` with screenshot, download link, feature overview, usage, and build instructions
 - Committed README + screenshot, pushed to `origin/main`

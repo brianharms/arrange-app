@@ -2,3 +2,10 @@ build/
 Arrange.xcodeproj/
 .DS_Store
 *.swp
+Arrange.zip
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.p12
+*.mobileprovision
+.env
