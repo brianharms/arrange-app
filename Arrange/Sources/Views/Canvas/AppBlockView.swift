@@ -8,9 +8,20 @@ struct AppBlockView: View {
 
     @State private var justSwapped = false
     @State private var isHovered = false
+    @AppStorage("debugMode") private var debugMode = false
 
     private var window: WindowInfo? {
         store.windowFor(col: col, app: app)
+    }
+
+    private var isWindowExcluded: Bool {
+        guard let w = window else { return false }
+        return store.isExcluded(w)
+    }
+
+    private var frameDelta: ArrangeStore.FrameDelta? {
+        guard let w = window else { return nil }
+        return store.frameDeltas[w.stableKey]
     }
 
     private var accent: AccentLevel {
@@ -18,26 +29,13 @@ struct AppBlockView: View {
     }
 
     private var bgColor: Color {
-        switch accent {
-        case .primary:   return Theme.accent
-        case .secondary: return Theme.accentDark
-        case .none:
-            if let w = window {
-                return Theme.appColor(for: w.bundleId).bg
-            }
-            return Theme.bgSurface
-        }
+        if let w = window { return Theme.appColor(for: w.bundleId).bg }
+        return Theme.bgSurface
     }
 
     private var textColor: Color {
-        switch accent {
-        case .primary, .secondary: return .white
-        case .none:
-            if let w = window {
-                return Theme.appColor(for: w.bundleId).text
-            }
-            return Theme.text4
-        }
+        if let w = window { return Theme.appColor(for: w.bundleId).text }
+        return Theme.text4
     }
 
     private var displayName: String {
@@ -51,7 +49,7 @@ struct AppBlockView: View {
     }
 
     private var shouldDesaturate: Bool {
-        accent == .none && (Theme.isGrey || Theme.isBW)
+        Theme.isGrey || Theme.isBW
     }
 
     var body: some View {
@@ -59,15 +57,29 @@ struct AppBlockView: View {
             RoundedRectangle(cornerRadius: Theme.radiusMd)
                 .fill(bgColor)
 
-            Text(displayName)
-                .font(Theme.mainFont(Theme.isASCII ? 11 : 12, weight: .semibold))
-                .foregroundStyle(textColor)
-                .tracking(Theme.isASCII ? 2 : (Theme.isCyber ? 3 : 0))
-                .lineLimit(1)
+            VStack(spacing: 2) {
+                Text(displayName)
+                    .font(Theme.mainFont(Theme.isASCII ? 11 : 12, weight: .semibold))
+                    .foregroundStyle(textColor)
+                    .tracking(Theme.isASCII ? 2 : (Theme.isCyber ? 3 : 0))
+                    .lineLimit(1)
+                if let sub = window?.subtitle {
+                    Text(sub)
+                        .font(Theme.monoFont(9))
+                        .foregroundStyle(textColor.opacity(0.6))
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 8)
         }
         .saturation(shouldDesaturate ? 0 : 1)
         .contrast(shouldDesaturate && Theme.isBW ? 1.4 : 1)
         .opacity(store.isDragging && store.dragSource?.col == col && store.dragSource?.app == app ? 0.25 : 1)
+        .overlay(alignment: .bottomTrailing) {
+            if debugMode, let delta = frameDelta {
+                DebugBadge(delta: delta)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: Theme.radiusMd)
                 .stroke(isDropTarget ? Theme.accent : Color.clear, lineWidth: 2)
@@ -183,6 +195,35 @@ struct DragGhostView: View {
         }
         .opacity(0.85)
         .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+    }
+}
+
+// MARK: - Debug Badge
+
+struct DebugBadge: View {
+    let delta: ArrangeStore.FrameDelta
+
+    var body: some View {
+        Group {
+            if delta.clamped {
+                Text("exp \(Int(delta.expected.width))×\(Int(delta.expected.height)) → got \(Int(delta.actual.width))×\(Int(delta.actual.height))")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.yellow.opacity(0.85))
+                    .clipShape(Capsule())
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.green)
+                    .padding(4)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.bottom, 4)
+        .padding(.trailing, 5)
     }
 }
 

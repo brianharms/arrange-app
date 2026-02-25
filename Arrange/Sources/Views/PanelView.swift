@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct PanelView: View {
     @Bindable var store: ArrangeStore
@@ -6,14 +7,13 @@ struct PanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar()
+            TopBar(dismiss: dismiss)
             MonitorBar(store: store)
 
             HStack(spacing: 0) {
                 // Sidebar
                 VStack(alignment: .leading, spacing: 0) {
                     WindowListView(store: store)
-                    ModifyInputView(store: store)
                     ActionButtons(store: store)
                 }
                 .frame(width: store.panelSize.sidebarWidth)
@@ -39,6 +39,7 @@ struct PanelView: View {
                 .frame(maxWidth: .infinity)
             }
             .frame(maxHeight: .infinity)
+            .background(NonMovableBackground())
         }
         .frame(width: store.panelSize.dimensions.width, height: store.panelSize.dimensions.height)
         .animation(.easeInOut(duration: 0.25), value: store.panelSize)
@@ -59,6 +60,7 @@ struct PanelView: View {
 struct StatusLine: View {
     let text: String
     private var isSm: Bool { ThemeConfig.shared.panelSize == .sm }
+    @State private var ritualHovered = false
 
     var body: some View {
         HStack {
@@ -67,9 +69,41 @@ struct StatusLine: View {
                 .foregroundStyle(Theme.text3)
                 .lineLimit(1)
             Spacer()
+            HStack(spacing: 0) {
+                Text("powered by ")
+                    .font(Theme.monoFont(isSm ? 9 : 10))
+                    .foregroundStyle(Theme.text4)
+                Button(action: {
+                    if let url = URL(string: "https://ritual.industries") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }) {
+                    Text("ritual.industries")
+                        .font(Theme.monoFont(isSm ? 9 : 10, weight: .semibold))
+                        .foregroundStyle(ritualHovered ? Color.red : Theme.text3)
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    ritualHovered = hovering
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+            }
+            .padding(.trailing, 5)
         }
         .frame(minHeight: isSm ? 14 : 18)
         .padding(.top, isSm ? 8 : 16)
+    }
+}
+
+// MARK: - Non-Movable Background
+// Prevents isMovableByWindowBackground from stealing drag gestures in the content area
+
+private struct NonMovableBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { _NonMovableView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private class _NonMovableView: NSView {
+        override var mouseDownCanMoveWindow: Bool { false }
     }
 }
 

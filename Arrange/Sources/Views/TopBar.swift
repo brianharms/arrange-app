@@ -15,40 +15,78 @@ class DragHandleView: NSView {
     }
 }
 
+// MARK: - Traffic Light Button
+
+struct TrafficLight: View {
+    let fillColor: Color
+    let symbol: String
+    let groupHovered: Bool
+    let action: () -> Void
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(fillColor)
+                .frame(width: 12, height: 12)
+
+            if groupHovered {
+                Image(systemName: symbol)
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.black.opacity(0.5))
+            }
+        }
+        .contentShape(Circle())
+        .onTapGesture { action() }
+    }
+}
+
 // MARK: - Top Bar
 
 struct TopBar: View {
+    var dismiss: () -> Void
     @State private var showThemePopover = false
+    @State private var trafficHovered = false
+
+    private let trafficRed = Color(red: 1.0, green: 0.373, blue: 0.341)
+    private let trafficYellow = Color(red: 1.0, green: 0.741, blue: 0.180)
+    private let trafficGreen = Color(red: 0.157, green: 0.788, blue: 0.251)
 
     var body: some View {
         HStack {
-            // Brand
-            HStack(spacing: 12) {
-                Button(action: { showThemePopover.toggle() }) {
-                    BrandIcon()
+            // Traffic lights
+            HStack(spacing: 8) {
+                TrafficLight(fillColor: trafficRed, symbol: "xmark", groupHovered: trafficHovered) {
+                    dismiss()
                 }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showThemePopover, arrowEdge: .bottom) {
-                    ThemePopover()
+                TrafficLight(fillColor: trafficYellow, symbol: "minus", groupHovered: trafficHovered) {
+                    NSApp.keyWindow?.miniaturize(nil)
                 }
-
-                Text("ARRANGE")
-                    .font(Theme.mainFont(15, weight: .bold))
-                    .foregroundStyle(Theme.text1)
-                    .tracking(Theme.isCyber ? 6 : 0)
+                TrafficLight(fillColor: trafficGreen, symbol: "plus", groupHovered: trafficHovered) {
+                    // Center window on screen
+                    NSApp.keyWindow?.center()
+                }
             }
+            .onHover { trafficHovered = $0 }
+            .padding(.trailing, 8)
+
+            // ARRANGE title (left side)
+            Text("ARRANGE")
+                .font(Theme.mainFont(15, weight: .bold))
+                .foregroundStyle(Theme.text1)
+                .tracking(Theme.isCyber ? 6 : 0)
+                .allowsHitTesting(false)
 
             Spacer()
 
-            // Powered by
-            HStack(spacing: 0) {
-                Text("powered by ")
-                    .font(Theme.monoFont(10))
-                    .foregroundStyle(Theme.text4)
-                Text("ritual.industries")
-                    .font(Theme.monoFont(10, weight: .semibold))
-                    .foregroundStyle(Theme.text3)
+            // Logo (right side, centroid aligned with LG size button)
+            Button(action: { showThemePopover.toggle() }) {
+                BrandIcon()
             }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showThemePopover, arrowEdge: .bottom) {
+                ThemePopover()
+            }
+            .padding(.trailing, 5)
         }
         .padding(.vertical, ThemeConfig.shared.panelSize == .sm ? 10 : 16)
         .padding(.horizontal, ThemeConfig.shared.panelSize == .sm ? 16 : 24)
@@ -70,20 +108,21 @@ struct BrandIcon: View {
             let blockW = (size.width - gap) / 2
             let blockH = (size.height - gap) / 2
 
+            let r: CGFloat = 3
             context.fill(
-                Path(CGRect(x: 0, y: 0, width: blockW, height: blockH)),
+                Path(roundedRect: CGRect(x: 0, y: 0, width: blockW, height: blockH), cornerRadius: r),
                 with: .color(Theme.accent)
             )
             context.fill(
-                Path(CGRect(x: blockW + gap, y: 0, width: blockW, height: blockH)),
+                Path(roundedRect: CGRect(x: blockW + gap, y: 0, width: blockW, height: blockH), cornerRadius: r),
                 with: .color(Theme.text5)
             )
             context.fill(
-                Path(CGRect(x: 0, y: blockH + gap, width: blockW, height: blockH)),
+                Path(roundedRect: CGRect(x: 0, y: blockH + gap, width: blockW, height: blockH), cornerRadius: r),
                 with: .color(Theme.text5)
             )
             context.fill(
-                Path(CGRect(x: blockW + gap, y: blockH + gap, width: blockW, height: blockH)),
+                Path(roundedRect: CGRect(x: blockW + gap, y: blockH + gap, width: blockW, height: blockH), cornerRadius: r),
                 with: .color(Theme.bgActive)
             )
         }
@@ -187,6 +226,29 @@ struct ThemePopover: View {
                     ForEach(ThemeColor.specialColors, id: \.self) { color in
                         ColorSwatch(color: color, isActive: config.colorChoice == color) {
                             config.colorChoice = color
+                        }
+                    }
+                }
+            }
+
+            Divider().opacity(0.3)
+
+            // Schemes section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("SCHEME")
+                    .font(Theme.monoFont(9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(1)
+
+                HStack(spacing: 12) {
+                    ForEach(ThemeColor.brandColors, id: \.self) { color in
+                        VStack(spacing: 3) {
+                            ColorSwatch(color: color, isActive: config.colorChoice == color) {
+                                config.colorChoice = color
+                            }
+                            Text(color.displayName)
+                                .font(Theme.monoFont(8))
+                                .foregroundStyle(config.colorChoice == color ? Theme.text1 : .secondary)
                         }
                     }
                 }
