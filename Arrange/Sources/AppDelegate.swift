@@ -65,7 +65,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupPanel() {
         let panel = FloatingPanel(
             contentRect: NSRect(x: 0, y: 0, width: Theme.panelWidth, height: Theme.panelHeight),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless, .nonactivatingPanel, .miniaturizable],
             backing: .buffered,
             defer: false
         )
@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        panel.isMovableByWindowBackground = false
+        panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.animationBehavior = .utilityWindow
@@ -84,9 +84,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let hostingView = NSHostingView(
-            rootView: PanelView(store: store, dismiss: { [weak self] in
-                self?.hidePanel()
-            })
+            rootView: PanelView(
+                store: store,
+                dismiss: { [weak self] in self?.hidePanel() },
+                minimize: { [weak self] in self?.minimizePanel() },
+                zoom: { [weak self] in self?.zoomPanel() }
+            )
         )
         hostingView.layer?.cornerRadius = Theme.radiusLg
         hostingView.layer?.masksToBounds = true
@@ -143,7 +146,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - HotKey
 
     private func setupHotKey() {
-        hotKey = HotKey(key: .space, modifiers: [.option, .command])
+        hotKey = HotKey(key: .a, modifiers: [.control, .option])
         hotKey?.keyDownHandler = { [weak self] in
             self?.togglePanel()
         }
@@ -179,6 +182,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func hidePanel() {
         panel?.orderOut(nil)
+    }
+
+    func minimizePanel() {
+        panel?.miniaturize(nil)
+    }
+
+    func zoomPanel() {
+        guard let panel, let screen = NSScreen.main else { return }
+        let frame = screen.visibleFrame
+        panel.setFrame(frame, display: true, animate: true)
     }
 
     func showSettings() {

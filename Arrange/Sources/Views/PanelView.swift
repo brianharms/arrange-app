@@ -4,16 +4,23 @@ import AppKit
 struct PanelView: View {
     @Bindable var store: ArrangeStore
     var dismiss: () -> Void
+    var minimize: () -> Void = {}
+    var zoom: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar(dismiss: dismiss)
+            TopBar(dismiss: dismiss, minimize: minimize, zoom: zoom)
             MonitorBar(store: store)
 
             HStack(spacing: 0) {
                 // Sidebar
                 VStack(alignment: .leading, spacing: 0) {
                     WindowListView(store: store)
+                    Rectangle()
+                        .fill(Theme.border)
+                        .frame(height: 1)
+                        .padding(.bottom, store.panelSize == .sm ? 8 : 12)
+                    SavedLayoutsView(store: store)
                     ActionButtons(store: store)
                 }
                 .frame(width: store.panelSize.sidebarWidth)

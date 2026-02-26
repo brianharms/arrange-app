@@ -75,6 +75,24 @@ struct AppBlockView: View {
         .saturation(shouldDesaturate ? 0 : 1)
         .contrast(shouldDesaturate && Theme.isBW ? 1.4 : 1)
         .opacity(store.isDragging && store.dragSource?.col == col && store.dragSource?.app == app ? 0.25 : 1)
+        .overlay(alignment: .topTrailing) {
+            if isHovered, let w = window {
+                Button {
+                    store.toggleExclusion(for: w)
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(textColor.opacity(0.8))
+                        .frame(width: 18, height: 18)
+                        .background(bgColor.opacity(0.85))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(textColor.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(5)
+                .transition(.opacity)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             if debugMode, let delta = frameDelta {
                 DebugBadge(delta: delta)

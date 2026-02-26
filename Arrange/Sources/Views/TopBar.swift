@@ -44,6 +44,8 @@ struct TrafficLight: View {
 
 struct TopBar: View {
     var dismiss: () -> Void
+    var minimize: () -> Void = {}
+    var zoom: () -> Void = {}
     @State private var showThemePopover = false
     @State private var trafficHovered = false
 
@@ -59,11 +61,10 @@ struct TopBar: View {
                     dismiss()
                 }
                 TrafficLight(fillColor: trafficYellow, symbol: "minus", groupHovered: trafficHovered) {
-                    NSApp.keyWindow?.miniaturize(nil)
+                    minimize()
                 }
                 TrafficLight(fillColor: trafficGreen, symbol: "plus", groupHovered: trafficHovered) {
-                    // Center window on screen
-                    NSApp.keyWindow?.center()
+                    zoom()
                 }
             }
             .onHover { trafficHovered = $0 }

@@ -4,6 +4,56 @@ This file tracks session handoffs so the next Claude Code instance can quickly g
 
 ---
 
+## Session — 2026-02-25 14:00
+
+### Goal
+Fix startup crash, add minus button on canvas blocks, enable minimize/zoom, and build save/trigger layout feature.
+
+### Accomplished
+- **Fixed startup crash**: `Fatal error: Duplicate values for key: '78150|✳ Claude Code'` in `WindowListView.swift` — replaced `Dictionary(uniqueKeysWithValues:)` with `Dictionary(uniquingKeysWith: { first, _ in first })` to handle windows sharing the same `stableKey` (same PID + title)
+- **Minus button on canvas blocks**: Added hover-reveal `−` button in top-right corner of each `AppBlockView`. Appears on hover, calls `store.toggleExclusion(for: window)`. Lets user exclude a window directly from the layout canvas without finding it in the sidebar list.
+- **Fixed minimize (yellow traffic light)**: Was calling `NSApp.keyWindow?.miniaturize(nil)` — unreliable on `.nonactivatingPanel`. Now passes `minimize` closure from `AppDelegate.minimizePanel()` which calls `panel?.miniaturize(nil)` directly. Also added `.miniaturizable` to the panel's style mask.
+- **Fixed zoom (green traffic light)**: Was just calling `center()`. Now calls `AppDelegate.zoomPanel()` which resizes the panel to `NSScreen.main?.visibleFrame`.
+- **Saved Layouts feature**: Full implementation:
+  - `SavedLayout.swift` — Codable model storing name, preset (with flex values), and slots (col/app/bundleId/appName)
+  - `SavedLayoutsView.swift` — sidebar section with `+` button to save, rows with `▶` play and hover-reveal `×` delete
+  - `SaveLayoutPopover` — name input popover triggered by `+`
+  - `ArrangeStore` additions: `savedLayouts`, `saveCurrentLayout(name:)`, `deleteLayout(id:)`, `triggerLayout(_:)`, `applyLayoutAssignments(_:)`, `persistLayouts()`, `loadLayouts()` — persisted to `UserDefaults` key `"savedLayouts"`
+  - Trigger flow: launches missing apps via `NSWorkspace.urlForApplication(withBundleIdentifier:)` + `openApplication(at:)`, waits 0.2s (no launches) or 3.0s (had to launch apps), then refresh + applyLayoutAssignments + apply
+- **App installed to /Applications/Arrange.app** and confirmed running
+
+### In Progress / Incomplete
+- None — all requested features were implemented and confirmed building
+
+### Key Decisions
+- `stableKey` duplicate fix done at the Dictionary construction site (WindowListView), not at the model level — `stableKey` is used elsewhere for persistence and changing it would break exclusion/delta tracking
+- Zoom fills full `visibleFrame` (respects Dock/menu bar) rather than toggling — more predictable UX for a floating panel
+- Save layout stores full preset (flex values) so custom seam positions are preserved
+- Trigger uses bundle ID matching (not window title) so it works across restarts; picks first unmatched window per bundle ID when multiple exist
+
+### Files Changed
+- `Arrange/Sources/Models/SavedLayout.swift` — NEW
+- `Arrange/Sources/Views/Sidebar/SavedLayoutsView.swift` — NEW
+- `Arrange/Sources/Stores/ArrangeStore.swift` — added savedLayouts, save/delete/trigger methods, loadLayouts in init, `import AppKit`, `manualAssignments` changed from `private` to internal
+- `Arrange/Sources/Views/Canvas/AppBlockView.swift` — added hover minus button overlay
+- `Arrange/Sources/Views/Sidebar/WindowListView.swift` — fixed duplicate key crash
+- `Arrange/Sources/AppDelegate.swift` — added `.miniaturizable` to style mask, `minimizePanel()`, `zoomPanel()`, pass closures to PanelView
+- `Arrange/Sources/Views/TopBar.swift` — added `minimize`/`zoom` closure params, wired traffic lights
+- `Arrange/Sources/Views/PanelView.swift` — added `minimize`/`zoom` params, added `SavedLayoutsView` to sidebar between window list and action buttons
+
+### Known Issues
+- None currently
+
+### Running Services
+- `/Applications/Arrange.app` is running (macOS menu bar app, no ports)
+
+### Next Steps
+- Test save/trigger with real apps across sessions
+- Consider adding a keyboard shortcut to trigger a saved layout (e.g. via HotKey package)
+- Consider renaming saved layouts in-place (double-click on name)
+
+---
+
 ## Session — 2026-02-24 19:20
 
 ### Goal

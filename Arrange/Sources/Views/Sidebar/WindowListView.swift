@@ -19,27 +19,32 @@ struct WindowListView: View {
 
             ScrollView {
                 VStack(spacing: 2) {
-                    ForEach(store.assignments, id: \.col) { assignment in
+                    // Look up col/app for accent level on included windows
+                    let assignmentMap = Dictionary(
+                        store.assignments.compactMap { a -> (String, (col: Int, app: Int))? in
+                            guard let w = a.window else { return nil }
+                            return (w.stableKey, (col: a.col, app: a.app))
+                        },
+                        uniquingKeysWith: { first, _ in first }
+                    )
+                    ForEach(Array(store.windows.enumerated()), id: \.offset) { _, window in
+                        let slot = assignmentMap[window.stableKey]
+                        WindowRow(
+                            name: window.displayName,
+                            subtitle: window.subtitle,
+                            accentLevel: slot.map { store.accentLevel(col: $0.col, app: $0.app) } ?? .none,
+                            bundleId: window.bundleId,
+                            isExcluded: store.isExcluded(window),
+                            onToggle: { store.toggleExclusion(for: window) }
+                        )
                     }
 
-                    let assigned = store.assignments.filter { $0.window != nil }
-                    ForEach(Array(assigned.enumerated()), id: \.offset) { _, item in
-                        if let window = item.window {
-                            WindowRow(
-                                name: window.displayName,
-                                size: window.shortSize,
-                                accentLevel: store.accentLevel(col: item.col, app: item.app),
-                                bundleId: window.bundleId
-                            )
-                        }
-                    }
-
-                    if assigned.isEmpty && !store.hasAccessibilityPermission {
+                    if store.windows.isEmpty && !store.hasAccessibilityPermission {
                         Text("Grant accessibility permission to detect windows")
                             .font(Theme.monoFont(10))
                             .foregroundStyle(Theme.text4)
                             .padding(.vertical, 20)
-                    } else if assigned.isEmpty {
+                    } else if store.windows.isEmpty {
                         Text("No windows detected")
                             .font(Theme.monoFont(10))
                             .foregroundStyle(Theme.text4)
@@ -57,36 +62,47 @@ struct WindowListView: View {
 
 struct WindowRow: View {
     let name: String
-    let size: String
+    let subtitle: String?
     let accentLevel: AccentLevel
     let bundleId: String
+    let isExcluded: Bool
+    let onToggle: () -> Void
 
     var dotColor: Color {
-        switch accentLevel {
-        case .primary:   return Theme.accent
-        case .secondary: return Theme.accentDark
-        case .none:      return Theme.appColor(for: bundleId).text
-        }
+        Theme.appColor(for: bundleId).text
     }
 
     private var isSm: Bool { ThemeConfig.shared.panelSize == .sm }
 
     var body: some View {
         HStack(spacing: isSm ? 6 : 10) {
+            Button(action: onToggle) {
+                Image(systemName: isExcluded ? "square" : "checkmark.square.fill")
+                    .font(.system(size: isSm ? 11 : 13))
+                    .foregroundStyle(isExcluded ? Theme.text4 : Theme.accent)
+            }
+            .buttonStyle(.plain)
+
             RoundedRectangle(cornerRadius: 2)
                 .fill(dotColor)
                 .frame(width: 8, height: 8)
+                .opacity(isExcluded ? 0.35 : 1)
 
             Text(name)
                 .font(Theme.mainFont(isSm ? 11 : 13, weight: .medium))
                 .foregroundStyle(Theme.text1)
                 .lineLimit(1)
+                .opacity(isExcluded ? 0.35 : 1)
 
             Spacer()
 
-            Text(size)
-                .font(Theme.monoFont(isSm ? 8 : 9))
-                .foregroundStyle(Theme.text4)
+            if let sub = subtitle {
+                Text(sub)
+                    .font(Theme.monoFont(isSm ? 8 : 9))
+                    .foregroundStyle(Theme.text3)
+                    .lineLimit(1)
+                    .opacity(isExcluded ? 0.35 : 1)
+            }
         }
         .padding(.vertical, isSm ? 6 : 9)
         .padding(.horizontal, isSm ? 6 : 10)
