@@ -4,6 +4,39 @@ This file tracks session handoffs so the next Claude Code instance can quickly g
 
 ---
 
+## Session — 2026-03-08 04:25
+
+### Goal
+Fix non-functional layout seam/grip dragging — user couldn't drag the handles between columns/rows to resize zones.
+
+### Accomplished
+- **Fixed seam drag not responding**: The panel uses `isMovableByWindowBackground = true`, and seams used `Color.clear` as their base. AppKit treated the clear area as window background, so dragging moved the entire panel instead of triggering the resize gesture. Fix: replaced `Color.clear` with `Color.white.opacity(0.001)` — visually invisible but opaque enough for AppKit to treat as interactive content.
+- **Fixed seam drag jitter/flashing**: After the first fix, dragging worked but the layout flickered rapidly between current and previous positions. Root cause: `DragGesture` used default `.local` coordinate space, but as flex values updated and the seam moved, the local coordinate system shifted mid-drag, creating a feedback loop. Fix: changed both vertical and horizontal seam gestures to use `coordinateSpace: .named("canvas")` — the stable canvas-level coordinate space already defined in `CanvasView.swift:53`.
+
+### In Progress / Incomplete
+- None — both fixes are built and deployed to `/Applications/Arrange.app`
+
+### Key Decisions
+- Used `Color.white.opacity(0.001)` rather than overriding `isMovableByWindowBackground` — less invasive, keeps window dragging working on all other areas
+- Used existing `"canvas"` named coordinate space rather than introducing a new one
+
+### Files Changed
+- `Arrange/Sources/Views/Canvas/SeamView.swift` — `Color.clear` → `Color.white.opacity(0.001)` (lines 34, 76); `DragGesture(minimumDistance: 1)` → `DragGesture(minimumDistance: 1, coordinateSpace: .named("canvas"))` (lines 51, 93)
+
+### Known Issues
+- Several source files have uncommitted changes from prior sessions (ArrangeApp.swift, LayoutPreset.swift, WindowInfo.swift, AccessibilityService.swift, ClaudeService.swift, Theme.swift, CanvasView.swift)
+- Legacy/untracked files still in repo root (duplicate xcodeproj, Makefile 2, etc.)
+
+### Running Services
+- `/Applications/Arrange.app` is running (floating panel, no ports)
+
+### Next Steps
+- Test seam dragging with various layout presets (2-col, 3-col, multi-row)
+- Commit accumulated source changes across sessions
+- Clean up legacy files in repo root
+
+---
+
 ## Session — 2026-02-25 14:00
 
 ### Goal
