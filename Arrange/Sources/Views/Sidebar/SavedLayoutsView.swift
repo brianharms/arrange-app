@@ -2,41 +2,20 @@ import SwiftUI
 
 struct SavedLayoutsView: View {
     @Bindable var store: ArrangeStore
-    @State private var showSavePopover = false
     private var isSm: Bool { ThemeConfig.shared.panelSize == .sm }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                SectionLabel("SAVED LAYOUTS")
-                Spacer()
-                Button(action: { showSavePopover = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.text3)
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 12)
-                .popover(isPresented: $showSavePopover, arrowEdge: .trailing) {
-                    SaveLayoutPopover(store: store, isPresented: $showSavePopover)
-                }
-            }
+            SectionLabel("SAVED LAYOUTS")
 
-            if store.savedLayouts.isEmpty {
-                Text("No saved layouts")
-                    .font(Theme.monoFont(isSm ? 9 : 10))
-                    .foregroundStyle(Theme.text4)
-                    .padding(.bottom, 8)
-            } else {
-                ScrollView {
-                    VStack(spacing: 2) {
-                        ForEach(store.savedLayouts) { layout in
-                            SavedLayoutRow(layout: layout, store: store)
-                        }
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(store.savedLayouts) { layout in
+                        SavedLayoutRow(layout: layout, store: store)
                     }
                 }
-                .frame(maxHeight: 100)
             }
+            .frame(maxHeight: 100)
         }
         .padding(.bottom, isSm ? 8 : 12)
     }

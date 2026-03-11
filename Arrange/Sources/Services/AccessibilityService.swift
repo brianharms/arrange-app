@@ -11,8 +11,12 @@ class AccessibilityService {
 
     // MARK: - Window Enumeration
 
+    /// Number of apps whose AX window query failed on last refresh
+    private(set) var axFailureCount: Int = 0
+
     func listWindows() -> [WindowInfo] {
         var windows: [WindowInfo] = []
+        var failures = 0
 
         let apps = NSWorkspace.shared.runningApplications.filter {
             $0.activationPolicy == .regular
@@ -30,39 +34,62 @@ class AccessibilityService {
             )
             guard result == .success,
                   let axWindows = windowsRef as? [AXUIElement]
-            else { continue }
+            else {
+                // Only count failures for non-self apps (self-inspection always works)
+                if app.bundleIdentifier != Bundle.main.bundleIdentifier {
+                    failures += 1
+                }
+                continue
+            }
 
+            let appHidden = app.isHidden
             for axWindow in axWindows {
                 guard let info = windowInfo(
                     from: axWindow,
                     pid: pid,
                     bundleId: app.bundleIdentifier ?? "",
-                    appName: app.localizedName ?? "Unknown"
+                    appName: app.localizedName ?? "Unknown",
+                    appHidden: appHidden
                 ) else { continue }
                 windows.append(info)
             }
         }
 
-        return windows
+        axFailureCount = failures
+        // Stable sort so assignment order doesn't shift with focus/Z-order changes
+        return windows.sorted {
+            if $0.pid != $1.pid { return $0.pid < $1.pid }
+            return $0.title < $1.title
+        }
     }
 
     // MARK: - Set Frame
 
     func setFrame(for window: WindowInfo, frame: CGRect) {
+        setSize(window.axWindow, size: frame.size)
         setPosition(window.axWindow, point: frame.origin)
         setSize(window.axWindow, size: frame.size)
     }
 
-    func setPosition(_ element: AXUIElement, point: CGPoint) {
-        var p = point
-        guard let value = AXValueCreate(.cgPoint, &p) else { return }
-        AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, value)
+    func getFrame(for window: WindowInfo) -> CGRect? {
+        guard let pos = pointAttr(window.axWindow, kAXPositionAttribute),
+              let size = sizeAttr(window.axWindow, kAXSizeAttribute)
+        else { return nil }
+        return CGRect(origin: pos, size: size)
     }
 
-    func setSize(_ element: AXUIElement, size: CGSize) {
+    @discardableResult
+    func setPosition(_ element: AXUIElement, point: CGPoint) -> AXError {
+        var p = point
+        guard let value = AXValueCreate(.cgPoint, &p) else { return .failure }
+        return AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, value)
+    }
+
+    @discardableResult
+    func setSize(_ element: AXUIElement, size: CGSize) -> AXError {
         var s = size
-        guard let value = AXValueCreate(.cgSize, &s) else { return }
-        AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, value)
+        guard let value = AXValueCreate(.cgSize, &s) else { return .failure }
+        return AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, value)
     }
 
     // MARK: - Helpers
@@ -71,32 +98,35 @@ class AccessibilityService {
         from axWindow: AXUIElement,
         pid: pid_t,
         bundleId: String,
-        appName: String
+        appName: String,
+        appHidden: Bool
     ) -> WindowInfo? {
-        // Skip minimized
-        if boolAttr(axWindow, kAXMinimizedAttribute) == true { return nil }
-
         // Must be standard window
         let subrole = stringAttr(axWindow, kAXSubroleAttribute) ?? ""
         guard subrole == "AXStandardWindow" else { return nil }
+
+        let minimized = boolAttr(axWindow, kAXMinimizedAttribute) == true
 
         // Get position + size
         let pos = pointAttr(axWindow, kAXPositionAttribute) ?? .zero
         let size = sizeAttr(axWindow, kAXSizeAttribute) ?? .zero
 
-        // Skip tiny windows
-        guard size.width >= 100 && size.height >= 100 else { return nil }
+        // Skip tiny windows (unless minimized/hidden — they may report 0 or stale size)
+        if !minimized && !appHidden {
+            guard size.width >= 100 && size.height >= 100 else { return nil }
 
-        // Skip offscreen (different Space)
-        let screens = NSScreen.screens
-        let windowRect = CGRect(origin: pos, size: size)
-        let onAnyScreen = screens.contains { screen in
-            let axScreenFrame = nsToAX(screen.frame)
-            return windowRect.intersects(axScreenFrame)
+            // Skip offscreen (different Space)
+            let screens = NSScreen.screens
+            let windowRect = CGRect(origin: pos, size: size)
+            let onAnyScreen = screens.contains { screen in
+                let axScreenFrame = nsToAX(screen.frame)
+                return windowRect.intersects(axScreenFrame)
+            }
+            guard onAnyScreen else { return nil }
         }
-        guard onAnyScreen else { return nil }
 
         let title = stringAttr(axWindow, kAXTitleAttribute) ?? ""
+        let windowRect = CGRect(origin: pos, size: size)
 
         return WindowInfo(
             pid: pid,
@@ -104,7 +134,9 @@ class AccessibilityService {
             bundleId: bundleId,
             appName: appName,
             title: title,
-            frame: windowRect
+            frame: windowRect,
+            isMinimized: minimized,
+            isHidden: appHidden
         )
     }
 

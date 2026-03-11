@@ -90,10 +90,7 @@ class ArrangeStore {
     }
 
     var effectivePreset: LayoutPreset {
-        guard !excludedWindowKeys.isEmpty else { return currentPreset }
-        let count = max(1, effectiveWindows.count)
-        let options = LayoutPreset.presets(forCount: count)
-        return options.first { $0.name == currentPreset.name } ?? options[0]
+        currentPreset
     }
 
     var assignments: [(col: Int, app: Int, window: WindowInfo?)] {
@@ -109,6 +106,21 @@ class ArrangeStore {
         layoutEngine.accentLevel(for: effectivePreset, col: col, app: app)
     }
 
+    /// Returns a display subtitle for a window, with ordinals when multiple
+    /// windows from the same app share the same brief label.
+    func displaySubtitle(for window: WindowInfo) -> String? {
+        let label = window.briefLabel
+        // Find all assigned windows with the same appName and briefLabel
+        let siblings = assignments.compactMap(\.window).filter {
+            $0.appName == window.appName && $0.briefLabel == label
+        }
+        guard siblings.count > 1, let idx = siblings.firstIndex(where: { $0.id == window.id }) else {
+            return label
+        }
+        let base = label ?? window.appName
+        return "\(base) #\(idx + 1)"
+    }
+
     // MARK: - Refresh
 
     func refresh() {
@@ -118,9 +130,17 @@ class ArrangeStore {
         }
         if hasAccessibilityPermission {
             windows = accessibilityService.listWindows()
+            // Detect broken AX permissions (can query self but not other apps)
+            if accessibilityService.axFailureCount > 0 && windows.count <= 1 {
+                statusText = "⚠ Re-grant Accessibility in System Settings"
+            }
         }
         let validKeys = Set(windows.map { $0.stableKey })
         excludedWindowKeys = excludedWindowKeys.intersection(validKeys)
+        // Auto-exclude minimized or hidden windows
+        for w in windows where w.isMinimized || w.isHidden {
+            excludedWindowKeys.insert(w.stableKey)
+        }
         regeneratePresets()
 
         screenService.observeChanges { [weak self] in
@@ -140,6 +160,7 @@ class ArrangeStore {
         } else {
             excludedWindowKeys.insert(w.stableKey)
         }
+        regeneratePresets()
     }
 
     // MARK: - Preset Selection
@@ -388,10 +409,20 @@ class ArrangeStore {
     // MARK: - Private
 
     private func regeneratePresets() {
-        let count = max(1, windows.count)
-        availablePresets = LayoutPreset.presets(forCount: count)
-        selectedPresetIndex = 0
-        layoutState = LayoutState(preset: availablePresets[0])
-        manualAssignments = nil
+        let count = max(1, effectiveWindows.count)
+        let newPresets = LayoutPreset.presets(forCount: count)
+
+        // Preserve user's selection if possible
+        let previousId = currentPreset.id
+        availablePresets = newPresets
+
+        if let idx = newPresets.firstIndex(where: { $0.id == previousId }) {
+            selectedPresetIndex = idx
+            layoutState.preset = newPresets[idx]
+        } else {
+            selectedPresetIndex = 0
+            layoutState = LayoutState(preset: newPresets[0])
+            manualAssignments = nil
+        }
     }
 }

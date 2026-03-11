@@ -69,7 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.level = .floating
+        panel.level = .normal
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
@@ -169,6 +169,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         store.refresh()
         panel.center()
         panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func recheckAccessibility() {

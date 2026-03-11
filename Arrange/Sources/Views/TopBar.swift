@@ -71,11 +71,16 @@ struct TopBar: View {
             .padding(.trailing, 8)
 
             // ARRANGE title (left side)
-            Text("ARRANGE")
-                .font(Theme.mainFont(15, weight: .bold))
-                .foregroundStyle(Theme.text1)
-                .tracking(Theme.isCyber ? 6 : 0)
-                .allowsHitTesting(false)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("ARRANGE")
+                    .font(Theme.mainFont(15, weight: .bold))
+                    .foregroundStyle(Theme.text1)
+                    .tracking(Theme.isCyber ? 6 : 0)
+                Text("v1.9")
+                    .font(Theme.monoFont(9, weight: .medium))
+                    .foregroundStyle(Theme.text5)
+            }
+            .allowsHitTesting(false)
 
             Spacer()
 

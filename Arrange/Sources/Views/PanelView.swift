@@ -20,7 +20,9 @@ struct PanelView: View {
                         .fill(Theme.border)
                         .frame(height: 1)
                         .padding(.bottom, store.panelSize == .sm ? 8 : 12)
-                    SavedLayoutsView(store: store)
+                    if !store.savedLayouts.isEmpty {
+                        SavedLayoutsView(store: store)
+                    }
                     ActionButtons(store: store)
                 }
                 .frame(width: store.panelSize.sidebarWidth)
@@ -40,7 +42,7 @@ struct PanelView: View {
                 VStack(spacing: 0) {
                     LayoutTabsView(store: store)
                     CanvasView(store: store)
-                    StatusLine(text: store.statusText)
+                    SaveLayoutButton(store: store)
                 }
                 .padding(store.panelSize.padding)
                 .frame(maxWidth: .infinity)
@@ -62,20 +64,39 @@ struct PanelView: View {
     }
 }
 
-// MARK: - Status Line
+// MARK: - Save Layout Button + Status Line
 
-struct StatusLine: View {
-    let text: String
+struct SaveLayoutButton: View {
+    @Bindable var store: ArrangeStore
+    @State private var showSavePopover = false
     private var isSm: Bool { ThemeConfig.shared.panelSize == .sm }
     @State private var ritualHovered = false
 
     var body: some View {
         HStack {
-            Text(text)
+            Button(action: { showSavePopover = true }) {
+                Image(systemName: "plus")
+                    .font(.system(size: isSm ? 9 : 10, weight: .semibold))
+                    .foregroundStyle(Theme.text3)
+                    .frame(width: isSm ? 22 : 26, height: isSm ? 22 : 26)
+                    .background(Theme.bgSurface, in: RoundedRectangle(cornerRadius: Theme.radiusSm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.radiusSm)
+                            .stroke(Theme.border, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showSavePopover, arrowEdge: .top) {
+                SaveLayoutPopover(store: store, isPresented: $showSavePopover)
+            }
+
+            Text(store.statusText)
                 .font(Theme.monoFont(isSm ? 10 : 11))
                 .foregroundStyle(Theme.text3)
                 .lineLimit(1)
+
             Spacer()
+
             HStack(spacing: 0) {
                 Text("powered by ")
                     .font(Theme.monoFont(isSm ? 9 : 10))

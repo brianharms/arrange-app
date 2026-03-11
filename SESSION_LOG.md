@@ -4,6 +4,51 @@ This file tracks session handoffs so the next Claude Code instance can quickly g
 
 ---
 
+## Session — 2026-03-11 01:06
+
+### Goal
+Multiple UX fixes: empty window slots, text readability in narrow blocks, panel z-order behavior, stable window enumeration, and saved layouts UI optimization.
+
+### Accomplished
+- **Fixed empty window slots**: `regeneratePresets()` now uses `effectiveWindows.count` (excludes hidden/excluded) instead of `windows.count`. Toggling exclusion calls `regeneratePresets()` so slot count updates immediately.
+- **Fixed text readability in narrow blocks**: Added GeometryReader-based responsive sizing in `AppBlockView` with three width tiers (normal 80px+, narrow 45-80px, very narrow <45px). Abbreviations for very narrow blocks, 2-line names for narrow+tall, `minimumScaleFactor(0.7)`.
+- **Fixed panel z-order**: Panel uses `.normal` level + `NSApp.activate(ignoringOtherApps: true)` on show. Panel appears on top when launched via hotkey, but goes behind other windows when user clicks elsewhere. Reverted a `becomeKey`/`resignKey` toggle approach that caused black screen + red flash.
+- **Stable window enumeration**: Added sort by PID+title in `AccessibilityService.listWindows()` so assignment order doesn't shift with focus/Z-order changes.
+- **Saved layouts UI optimization**: Hidden `SavedLayoutsView` section when `store.savedLayouts.isEmpty`. Moved "+" save button from sidebar header to the bottom-left of the main canvas area (in `SaveLayoutButton` view alongside status text).
+- **Version bumped to v1.9**
+
+### In Progress / Incomplete
+- User wanted the "+" save button at a specific spot (bottom-left of main canvas, where the red star was in their screenshot). The implementation places it there but user hasn't confirmed the exact position yet.
+
+### Key Decisions
+- `.normal` panel level + `NSApp.activate()` is the correct z-order approach — `.floating` keeps it always on top (bad), `becomeKey`/`resignKey` toggle caused black screen glitches
+- Stable sort by PID+title prevents window enumeration from shifting when focus changes
+- "+" save button moved into a new `SaveLayoutButton` view in `PanelView.swift` that combines it with the status line, rather than keeping it in the sidebar
+
+### Files Changed
+- `Arrange/Sources/Stores/ArrangeStore.swift` — `regeneratePresets()` uses `effectiveWindows.count`, `toggleExclusion()` calls `regeneratePresets()`
+- `Arrange/Sources/Services/AccessibilityService.swift` — stable sort by PID+title in `listWindows()`
+- `Arrange/Sources/AppDelegate.swift` — panel level `.normal`, `showPanel()` calls `NSApp.activate()`
+- `Arrange/Sources/Views/Canvas/AppBlockView.swift` — responsive text with GeometryReader, abbreviation property, three width tiers
+- `Arrange/Sources/Views/PanelView.swift` — conditional SavedLayoutsView, new `SaveLayoutButton` view replacing `StatusLine`, "+" button in canvas area
+- `Arrange/Sources/Views/Sidebar/SavedLayoutsView.swift` — removed "+" button and empty state text (moved to canvas)
+- `Arrange/Sources/Views/Sidebar/ActionButtons.swift` — removed "+" button (was briefly here before moving to canvas)
+- `Arrange/Sources/Views/TopBar.swift` — version bumped to v1.9
+
+### Known Issues
+- Several legacy/untracked files in repo root (duplicate xcodeproj, Makefile 2, etc.)
+- Accumulated uncommitted changes from multiple sessions
+
+### Running Services
+- `Arrange.app` is running from `/tmp/arrange-build/Build/Products/Debug/Arrange.app`
+
+### Next Steps
+- Confirm "+" button placement with user
+- Test saved layout create/trigger workflow with the new button position
+- Commit accumulated changes across all sessions
+
+---
+
 ## Session — 2026-03-08 04:25
 
 ### Goal

@@ -52,25 +52,58 @@ struct AppBlockView: View {
         Theme.isGrey || Theme.isBW
     }
 
+    private var abbreviation: String {
+        let name = window?.displayName ?? "Empty"
+        // Use first letter of each word, or first 2 chars if single word
+        let words = name.split(separator: " ")
+        if words.count >= 2 {
+            let abbr = words.prefix(3).map { String($0.prefix(1)) }.joined()
+            return Theme.isASCII || Theme.isCyber ? abbr.uppercased() : abbr
+        }
+        let abbr = String(name.prefix(2))
+        return Theme.isASCII || Theme.isCyber ? abbr.uppercased() : abbr
+    }
+
+    private func nameTracking() -> CGFloat {
+        Theme.isASCII ? 2 : (Theme.isCyber ? 3 : 0)
+    }
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.radiusMd)
                 .fill(bgColor)
 
-            VStack(spacing: 2) {
-                Text(displayName)
-                    .font(Theme.mainFont(Theme.isASCII ? 11 : 12, weight: .semibold))
-                    .foregroundStyle(textColor)
-                    .tracking(Theme.isASCII ? 2 : (Theme.isCyber ? 3 : 0))
-                    .lineLimit(1)
-                if let sub = window?.subtitle {
-                    Text(sub)
-                        .font(Theme.monoFont(9))
-                        .foregroundStyle(textColor.opacity(0.6))
-                        .lineLimit(1)
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let isNarrow = w < 80
+                let isVeryNarrow = w < 45
+                let isTall = h > 50
+
+                let nameSize: CGFloat = isVeryNarrow ? 9 : (isNarrow ? 10 : (Theme.isASCII ? 11 : 12))
+                let nameLines = (isNarrow && isTall && !isVeryNarrow) ? 2 : 1
+                let showSubtitle = !isNarrow
+                let showAbbreviation = isVeryNarrow
+
+                VStack(spacing: 2) {
+                    Text(showAbbreviation ? abbreviation : displayName)
+                        .font(Theme.mainFont(nameSize, weight: .semibold))
+                        .foregroundStyle(textColor)
+                        .tracking(nameTracking())
+                        .lineLimit(nameLines)
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.7)
+                    if showSubtitle, let win = window, let sub = store.displaySubtitle(for: win) {
+                        Text(sub)
+                            .font(Theme.monoFont(9))
+                            .foregroundStyle(textColor.opacity(0.6))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
+                .padding(.horizontal, isVeryNarrow ? 3 : 8)
+                .frame(width: w, height: h)
             }
-            .padding(.horizontal, 8)
         }
         .saturation(shouldDesaturate ? 0 : 1)
         .contrast(shouldDesaturate && Theme.isBW ? 1.4 : 1)
@@ -119,7 +152,7 @@ struct AppBlockView: View {
         .if(Theme.isASCII) { $0.themedBorder(radius: Theme.radiusMd, color: Theme.borderActive) }
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
-        .highPriorityGesture(dragGesture)
+        .gesture(dragGesture)
     }
 
     // MARK: - Drag Gesture
