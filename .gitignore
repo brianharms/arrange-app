@@ -1,5 +1,8 @@
 build/
+build-debug/
 Arrange.xcodeproj/
+Arrange 2.xcodeproj/
+Arrange 5.xcodeproj/
 .DS_Store
 *.swp
 Arrange.zip
@@ -9,3 +12,7 @@ xcuserdata/
 *.p12
 *.mobileprovision
 .env
+.gitignore 2
+Makefile 2
+project 2.yml
+scene.js

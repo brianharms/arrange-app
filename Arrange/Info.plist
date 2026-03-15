@@ -23,7 +23,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSUIElement</key>
-	<true/>
+	<false/>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>Arrange needs accessibility access to detect and reposition your windows.</string>
 	<key>NSHumanReadableCopyright</key>

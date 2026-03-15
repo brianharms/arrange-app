@@ -26,6 +26,7 @@ class ClaudeService {
     func modify(
         preset: LayoutPreset,
         instruction: String,
+        assignmentContext: String = "",
         apiKey: String
     ) async throws -> LayoutPreset {
         let encoder = JSONEncoder()
@@ -38,13 +39,20 @@ class ClaudeService {
         The layout has columns (each with a flex value) containing apps (each with an id and flex value).
         Flex values control proportional sizing. Higher flex = larger.
         alignRows controls whether rows across columns are aligned.
+        Column and slot indices are 1-based in the window map provided.
         Return valid JSON only, no markdown, no explanation.
+        """
+
+        let windowMapSection = assignmentContext.isEmpty ? "" : """
+
+        Window assignments (which app is in which slot):
+        \(assignmentContext)
         """
 
         let userMessage = """
         Current layout:
         \(presetJSON)
-
+        \(windowMapSection)
         Instruction: \(instruction)
 
         Return the modified layout JSON only.

@@ -6,7 +6,7 @@ struct ArrangeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            Button("Show Arrange  ⌥⌘Space") {
+            Button("Show Arrange  ⌃⌥A") {
                 appDelegate.togglePanel()
             }
             Divider()

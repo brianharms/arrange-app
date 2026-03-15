@@ -13,6 +13,9 @@ struct SeamView: View {
     let totalSize: CGFloat
     let totalFlex: Double
 
+    // Expanded hit target beyond the visual seam width
+    private let hitPadding: CGFloat = 8
+
     @State private var isHovered = false
     @State private var isActive = false
     @State private var lastTranslation: CGFloat = 0
@@ -31,13 +34,14 @@ struct SeamView: View {
     // MARK: - Vertical Seam
 
     private var verticalSeam: some View {
-        Color.white.opacity(0.001)
+        Color.clear
             .frame(width: Theme.seamWidth)
+            .padding(.horizontal, hitPadding)
             .contentShape(Rectangle())
             .overlay {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(isHovered || isActive ? Theme.accent : Theme.text5)
-                    .frame(width: 2, height: 36)
+                    .frame(width: isActive ? 3 : 2, height: 36)
             }
             .onHover { hovering in
                 isHovered = hovering
@@ -47,7 +51,7 @@ struct SeamView: View {
                     NSCursor.pop()
                 }
             }
-            .gesture(
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("canvas"))
                     .onChanged { value in
                         if !isActive {
@@ -68,18 +72,20 @@ struct SeamView: View {
                         store.endSeamDrag()
                     }
             )
+            .padding(.horizontal, -hitPadding)
     }
 
     // MARK: - Horizontal Seam
 
     private var horizontalSeam: some View {
-        Color.white.opacity(0.001)
+        Color.clear
             .frame(height: Theme.seamWidth)
+            .padding(.vertical, hitPadding)
             .contentShape(Rectangle())
             .overlay {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(isHovered || isActive ? Theme.accent : Theme.text5)
-                    .frame(width: 36, height: 2)
+                    .frame(width: 36, height: isActive ? 3 : 2)
             }
             .onHover { hovering in
                 isHovered = hovering
@@ -89,7 +95,7 @@ struct SeamView: View {
                     NSCursor.pop()
                 }
             }
-            .gesture(
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("canvas"))
                     .onChanged { value in
                         if !isActive {
@@ -110,5 +116,6 @@ struct SeamView: View {
                         store.endSeamDrag()
                     }
             )
+            .padding(.vertical, -hitPadding)
     }
 }

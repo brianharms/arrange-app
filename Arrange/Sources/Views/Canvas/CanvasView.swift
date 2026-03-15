@@ -5,7 +5,7 @@ struct CanvasView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let preset = store.currentPreset
+            let preset = store.effectivePreset
             let totalColFlex = preset.columns.reduce(0.0) { $0 + $1.flex }
             let totalVSeams = CGFloat(max(0, preset.columns.count - 1)) * Theme.seamWidth
             let availableWidth = geo.size.width - totalVSeams
@@ -34,6 +34,7 @@ struct CanvasView: View {
                                 totalSize: availableWidth,
                                 totalFlex: totalColFlex
                             )
+                            .zIndex(1)
                         }
                     }
                 }
@@ -96,6 +97,7 @@ struct CanvasView: View {
                         totalSize: availableHeight,
                         totalFlex: totalAppFlex
                     )
+                    .zIndex(1)
                 }
             }
         }
