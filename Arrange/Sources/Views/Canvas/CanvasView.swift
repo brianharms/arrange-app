@@ -6,30 +6,34 @@ struct CanvasView: View {
     var body: some View {
         GeometryReader { geo in
             let preset = store.effectivePreset
-            let totalColFlex = preset.columns.reduce(0.0) { $0 + $1.flex }
-            let totalVSeams = CGFloat(max(0, preset.columns.count - 1)) * Theme.seamWidth
-            let availableWidth = geo.size.width - totalVSeams
             let blockFrames = Self.computeBlockFrames(canvasSize: geo.size, preset: preset)
+
+            // Only render columns that have at least one assigned window
+            let filledCols = filledColumns(for: preset)
+            let totalColFlex = filledCols.reduce(0.0) { $0 + $1.column.flex }
+            let totalVSeams = CGFloat(max(0, filledCols.count - 1)) * Theme.seamWidth
+            let availableWidth = geo.size.width - totalVSeams
 
             ZStack(alignment: .topLeading) {
                 HStack(spacing: 0) {
-                    ForEach(Array(preset.columns.enumerated()), id: \.offset) { colIndex, column in
-                        let colWidth = availableWidth * CGFloat(column.flex / totalColFlex)
+                    ForEach(Array(filledCols.enumerated()), id: \.element.colIndex) { renderColIndex, entry in
+                        let colWidth = totalColFlex > 0
+                            ? availableWidth * CGFloat(entry.column.flex / totalColFlex)
+                            : availableWidth
 
                         columnView(
-                            column: column,
-                            colIndex: colIndex,
+                            column: entry.column,
+                            colIndex: entry.colIndex,
                             totalHeight: geo.size.height,
                             blockPositions: blockFrames
                         )
                         .frame(width: colWidth)
 
-                        // Vertical seam between columns
-                        if colIndex < preset.columns.count - 1 {
+                        if renderColIndex < filledCols.count - 1 {
                             SeamView(
                                 orientation: .vertical,
                                 store: store,
-                                col: colIndex,
+                                col: entry.colIndex,
                                 app: 0,
                                 totalSize: availableWidth,
                                 totalFlex: totalColFlex
@@ -69,31 +73,51 @@ struct CanvasView: View {
         }
     }
 
+    // Returns only columns that have at least one window assigned
+    private func filledColumns(for preset: LayoutPreset) -> [(colIndex: Int, column: LayoutPreset.Column)] {
+        preset.columns.enumerated().compactMap { colIndex, col in
+            let hasFilled = col.apps.indices.contains { appIndex in
+                store.windowFor(col: colIndex, app: appIndex) != nil
+            }
+            return hasFilled ? (colIndex: colIndex, column: col) : nil
+        }
+    }
+
+    // Returns only slots in a column that have a window assigned
+    private func filledSlots(in column: LayoutPreset.Column, colIndex: Int) -> [(appIndex: Int, app: LayoutPreset.AppSlot)] {
+        column.apps.indices.compactMap { appIndex in
+            guard store.windowFor(col: colIndex, app: appIndex) != nil else { return nil }
+            return (appIndex: appIndex, app: column.apps[appIndex])
+        }
+    }
+
     @ViewBuilder
     private func columnView(column: LayoutPreset.Column, colIndex: Int, totalHeight: CGFloat, blockPositions: [BlockPosition]) -> some View {
-        let totalAppFlex = column.apps.reduce(0.0) { $0 + $1.flex }
-        let totalHSeams = CGFloat(max(0, column.apps.count - 1)) * Theme.seamWidth
+        let slots = filledSlots(in: column, colIndex: colIndex)
+        let totalAppFlex = slots.reduce(0.0) { $0 + $1.app.flex }
+        let totalHSeams = CGFloat(max(0, slots.count - 1)) * Theme.seamWidth
         let availableHeight = totalHeight - totalHSeams
 
         VStack(spacing: 0) {
-            ForEach(Array(column.apps.enumerated()), id: \.offset) { appIndex, app in
-                let appHeight = availableHeight * CGFloat(app.flex / totalAppFlex)
+            ForEach(Array(slots.enumerated()), id: \.element.appIndex) { renderAppIndex, slot in
+                let appHeight = totalAppFlex > 0
+                    ? availableHeight * CGFloat(slot.app.flex / totalAppFlex)
+                    : availableHeight
 
                 AppBlockView(
                     store: store,
                     col: colIndex,
-                    app: appIndex,
+                    app: slot.appIndex,
                     blockPositions: blockPositions
                 )
                 .frame(height: appHeight)
 
-                // Horizontal seam between apps
-                if appIndex < column.apps.count - 1 {
+                if renderAppIndex < slots.count - 1 {
                     SeamView(
                         orientation: .horizontal,
                         store: store,
                         col: colIndex,
-                        app: appIndex,
+                        app: slot.appIndex,
                         totalSize: availableHeight,
                         totalFlex: totalAppFlex
                     )
@@ -103,7 +127,7 @@ struct CanvasView: View {
         }
     }
 
-    // Compute block frames mathematically from flex values instead of using preferences
+    // Compute block frames from the full preset (used for drag hit-testing)
     static func computeBlockFrames(canvasSize: CGSize, preset: LayoutPreset) -> [BlockPosition] {
         let totalColFlex = preset.columns.reduce(0.0) { $0 + $1.flex }
         let totalVSeams = CGFloat(max(0, preset.columns.count - 1)) * Theme.seamWidth

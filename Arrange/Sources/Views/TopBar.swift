@@ -76,7 +76,7 @@ struct TopBar: View {
                     .font(Theme.mainFont(15, weight: .bold))
                     .foregroundStyle(Theme.text1)
                     .tracking(Theme.isCyber ? 6 : 0)
-                Text("v1.9")
+                Text("v2.0")
                     .font(Theme.monoFont(9, weight: .medium))
                     .foregroundStyle(Theme.text5)
             }

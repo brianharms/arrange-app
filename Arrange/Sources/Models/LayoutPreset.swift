@@ -114,7 +114,7 @@ struct LayoutPreset: Identifiable, Codable, Equatable {
                         Column(flex: 1, apps: [slot(1), slot(2)]),
                         Column(flex: 1, apps: [slot(3), slot(4)]),
                     ], alignRows: true),
-                LayoutPreset(id: "grid5", name: "Grid 3+2",
+                LayoutPreset(id: "grid5", name: "Grid",
                     columns: [
                         Column(flex: 1, apps: [slot(0), slot(3)]),
                         Column(flex: 1, apps: [slot(1), slot(4)]),

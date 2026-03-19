@@ -49,6 +49,46 @@ Multiple UX fixes: empty window slots, text readability in narrow blocks, panel 
 
 ---
 
+## Session — 2026-03-19 12:10
+
+### Goal
+Fix "Empty" slot appearing in canvas when a window is excluded, and rename "Grid 3+2" to something less prescriptive.
+
+### Accomplished
+- **Empty slots never render**: `CanvasView` now filters out slots with no assigned window before rendering. Remaining slots in the column expand to fill the space. Entire columns with no filled slots are also skipped. Width/flex recalculated from filled columns only.
+- **Seam logic updated**: Seams between columns and between slots now only render between *filled* entries, not based on original preset indices.
+- **Renamed "Grid 3+2" → "Grid"**: `LayoutPreset.swift` line 117 — id `"grid5"` still unchanged (for saved layout compatibility), only display name changed.
+- **Version bumped to v2.0**
+- Built, deployed to `/Applications/Arrange.app`, relaunched
+
+### In Progress / Incomplete
+- None
+
+### Key Decisions
+- Fix is in the *render layer* (`CanvasView`), not the store/preset layer — `assignments` and `effectivePreset` are untouched. This is intentional: the preset structure remains the source of truth; we just don't render empty slots.
+- `computeBlockFrames` still uses the full preset (including empty slots) — this is correct for drag hit-testing since the indices must match what `windowFor(col:app:)` expects.
+- Seam `totalFlex` and `totalSize` passed to `SeamView` now use only filled columns' flex — drag-resize of seams between filled columns is unaffected.
+- Stale `manualAssignments` issue (identified by hypothesize agents) not fixed at the store level — the render-layer fix handles the symptom. Could still cause subtle issues if a manual assignment references a now-excluded window; revisit if user reports drag-swap weirdness after exclusion.
+
+### Files Changed
+- `Arrange/Sources/Views/Canvas/CanvasView.swift` — full rewrite of `body` and `columnView`; added `filledColumns()` and `filledSlots()` helpers
+- `Arrange/Sources/Models/LayoutPreset.swift` — line 117: `"Grid 3+2"` → `"Grid"`
+- `Arrange/Sources/Views/TopBar.swift` — version `v1.9` → `v2.0`
+
+### Known Issues
+- `manualAssignments` stale-state path (agents B+C identified): if user drag-swaps blocks and then excludes a window, the `if let idx` branch in `regeneratePresets()` doesn't clear `manualAssignments`. Render fix handles this visually but the underlying stale state remains. Low priority until user hits it.
+- Legacy untracked files still in repo root: `Arrange/Info 3.plist`, `project.json`
+
+### Running Services
+- `/Applications/Arrange.app` running
+
+### Next Steps
+- Test the empty-slot fix across all preset types (Grid, Focus, Columns, Cascade) with various exclusion combos
+- Consider fixing stale `manualAssignments` in `regeneratePresets()` `if let idx` branch: add `manualAssignments = nil` there
+- Commit accumulated source changes (done this session)
+
+---
+
 ## Session — 2026-03-08 04:25
 
 ### Goal
